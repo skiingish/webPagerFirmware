@@ -30,11 +30,6 @@ TwoWire MyWire(SDA_PIN, SCL_PIN);
 
 String serialMsg = "";
 char writeMsg[6] = "write";
-// char writeMsg = "write";
-// int incomingByte = 0;
-// char inputString[100];
-// char inputStringCharIndex = 0;
-// bool stringComplete = false;
 
 void setup()
 {
@@ -43,65 +38,12 @@ void setup()
   // Initialize on board serial tx rx lines
   SerialPort1.begin(115200);
 
-  const char uri_write_message[] = "web-pager-backend.herokuapp.com"; // Uri message to write in the tag
-  // const char uri_write_protocol[] = URI_ID_0x01_STRING;
-  const char uri_write_protocol[] = "https://"; // Uri protocol to write in the tag
-  String uri_write = String(uri_write_protocol) + String(uri_write_message);
-  // String uri_write = "https://web-pager-backend.herokuapp.com/";
-  String uri_read;
-
+  // Pin 13 as output for write status.
   pinMode(13, OUTPUT);
 
-  while (!SerialPort)
-  {
-    delay(10);
-  }
-
-  // The wire instance used can be omited in case you use default Wire instance
-  if (st25dv.begin(GPO_PIN, LPD_PIN, &WireNFC) == 0)
-  {
-    SerialPort.println("System Init done!");
-    SerialPort1.println("System Init done!");
-  }
-  else
-  {
-    SerialPort.println("System Init failed!");
-    SerialPort1.println("System Init failed!");
-    while (1)
-      ;
-  }
-
-  if (st25dv.writeURI(uri_write_protocol, uri_write_message, ""))
-  {
-    SerialPort.println("Write failed!");
-    while (1)
-      ;
-  }
-
-  // Wait before reading
-  delay(100);
-
-  if (st25dv.readURI(&uri_read))
-  {
-    SerialPort.println("Read failed!");
-    while (1)
-      ;
-  }
-
-  SerialPort.println(uri_read.c_str());
-
-  if (strcmp(uri_read.c_str(), uri_write.c_str()) == 0)
-  {
-    SerialPort.println(uri_read.c_str());
-    SerialPort.println("Successfully written and read!");
-    digitalWrite(13, HIGH); // turn the LED on
-  }
-  else
-  {
-    SerialPort.println("Read bad string!");
-  }
-
-  delay(100);
+  char *url = "web-pager-backend.herokuapp.com"; // Uri message to write in the tag
+  // Start with writing the base url.
+  updateNFCTag(url);
 }
 
 void loop()
@@ -118,20 +60,16 @@ void loop()
       serialMsg = SerialPort1.readStringUntil('\n');
     }
 
-    // SerialPort.println(serialMsg);
-
     char arr[serialMsg.length() + 1];
 
+    // To String
     strcpy(arr, serialMsg.c_str());
 
-    // SerialPort.println(arr);
-
+    // Split up the input (write,url)
     char *token = strtok(arr, ",");
     char *url = strtok(NULL, ",");
 
-    // SerialPort.println(token);
-    // SerialPort.println(writeMsg);
-
+    // If this is a write message, then update the tag.
     if (strcmp(token, writeMsg) == 0)
     {
       SerialPort.println(url);
@@ -148,9 +86,9 @@ bool updateNFCTag(char url[])
   bool sucuss = false;
   const char uri_write_protocol[] = "https://"; // Uri protocol to write in the tag
   String uri_write = String(uri_write_protocol) + String(url);
-  // String uri_write = "https://web-pager-backend.herokuapp.com/";
   String uri_read;
 
+  // Turn off the pin while writing.
   digitalWrite(13, LOW);
 
   // The wire instance used can be omited in case you use default Wire instance
